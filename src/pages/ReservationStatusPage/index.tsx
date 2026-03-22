@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Top, Spacing, Border, Button, Text, ListRow } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
@@ -10,22 +10,14 @@ import { useCancelReservationMutation } from '../../mutations';
 import { MINUTES_PER_HOUR } from '../../constants';
 import { HOUR_LABELS, timeToMinutes, TOTAL_MINUTES } from '../../shared/reservationTimePolicy';
 import { formatDate } from 'utils';
+import { useStatusMessage } from './useStatusMessage';
 
 export function ReservationStatusPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+
   const [date, setDate] = useState(formatDate(new Date()));
 
-  const locationState = location.state as { message?: string } | null;
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
-    locationState?.message ? { type: 'success', text: locationState.message } : null
-  );
-
-  useEffect(() => {
-    if (locationState?.message) {
-      window.history.replaceState({}, '');
-    }
-  }, [locationState]);
+  const { message, showSuccessMessage, showErrorMessage } = useStatusMessage()
 
   const { data: rooms = [] } = useQuery(queries.rooms());
   const { data: reservations = [] } = useQuery({
@@ -39,9 +31,9 @@ export function ReservationStatusPage() {
   const handleCancel = async (id: string) => {
     try {
       await cancelMutation.mutateAsync(id);
-      setMessage({ type: 'success', text: '예약이 취소되었습니다.' });
+      showSuccessMessage('예약이 취소되었습니다.')
     } catch {
-      setMessage({ type: 'error', text: '취소에 실패했습니다.' });
+      showErrorMessage('취소에 실패했습니다.')
     }
   };
 
