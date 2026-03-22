@@ -9,13 +9,7 @@ import { queries } from '../../queries';
 import { useCancelReservationMutation } from '../../mutations';
 import { MINUTES_PER_HOUR } from '../../constants';
 import { HOUR_LABELS, timeToMinutes, TOTAL_MINUTES } from '../../shared/reservationTimePolicy';
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+import { formatDate } from 'utils';
 
 export function ReservationStatusPage() {
   const navigate = useNavigate();

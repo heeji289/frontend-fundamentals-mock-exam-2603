@@ -10,13 +10,7 @@ import { ALL_EQUIPMENT, Equipment, EQUIPMENT_LABELS } from '../../types';
 import { queries } from '../../queries';
 import { useCreateReservationMutation } from '../../mutations';
 import { TIME_SLOTS } from '../../shared/reservationTimePolicy';
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+import { formatDate } from 'utils';
 
 const roomFiltersSchema = z.object({
   date: z.iso.date().default(formatDate(new Date())),
