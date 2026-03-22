@@ -9,14 +9,7 @@ import z from 'zod';
 import { ALL_EQUIPMENT, Equipment, EQUIPMENT_LABELS } from '../../types';
 import { queries } from '../../queries';
 import { useCreateReservationMutation } from '../../mutations';
-
-const TIME_SLOTS: string[] = [];
-for (let h = 9; h <= 20; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 20) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-  }
-}
+import { TIME_SLOTS } from '../../shared/reservationTimePolicy';
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();

@@ -7,30 +7,14 @@ import { colors } from '_tosslib/constants/colors';
 import { Equipment, EQUIPMENT_LABELS } from '../../types';
 import { queries } from '../../queries';
 import { useCancelReservationMutation } from '../../mutations';
-
-const TIME_SLOTS: string[] = [];
-for (let h = 9; h <= 20; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 20) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-  }
-}
-
-const HOUR_LABELS = TIME_SLOTS.filter(t => t.endsWith(':00'));
-const TIMELINE_START = 9;
-const TIMELINE_END = 20;
-const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
+import { MINUTES_PER_HOUR } from '../../constants';
+import { HOUR_LABELS, timeToMinutes, TOTAL_MINUTES } from '../../shared/reservationTimePolicy';
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return (h - TIMELINE_START) * 60 + m;
 }
 
 export function ReservationStatusPage() {
@@ -118,11 +102,11 @@ export function ReservationStatusPage() {
           <div css={css`display: flex; align-items: flex-end; margin-bottom: 8px;`}>
             <div css={css`width: 80px; flex-shrink: 0; padding-right: 8px;`} />
             <div css={css`flex: 1; position: relative; height: 18px;`}>
-              {HOUR_LABELS.map(t => {
-                const left = (timeToMinutes(t) / TOTAL_MINUTES) * 100;
+              {HOUR_LABELS.map(hour => {
+                const left = ((hour - HOUR_LABELS[0]) * MINUTES_PER_HOUR / TOTAL_MINUTES) * 100;
                 return (
                   <Text
-                    key={t}
+                    key={hour}
                     typography="t7"
                     fontWeight="regular"
                     color={colors.grey400}
@@ -131,7 +115,7 @@ export function ReservationStatusPage() {
                       font-size: 10px; letter-spacing: -0.3px;
                     `}
                   >
-                    {t.slice(0, 2)}
+                    {hour}
                   </Text>
                 );
               })}
