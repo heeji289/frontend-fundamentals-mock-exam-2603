@@ -1,16 +1,15 @@
 import { css } from '@emotion/react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Top, Spacing, Border, Button, Text, Select, ListRow } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
 import axios from 'axios';
 import { ALL_EQUIPMENT, Equipment, EQUIPMENT_LABELS } from '../../types';
-import { queries } from '../../queries';
 import { useCreateReservationMutation } from '../../mutations';
 import { TIME_SLOTS } from '../../shared/reservationTimePolicy';
 import { formatDate } from 'utils';
 import { useRoomFilters } from './useRoomFilters';
+import { useGetAvailableRooms } from './useGetAvailableRooms';
 
 export function RoomBookingPage() {
   const navigate = useNavigate();
@@ -20,12 +19,6 @@ export function RoomBookingPage() {
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const { data: rooms = [] } = useQuery(queries.rooms());
-  const { data: reservations = [] } = useQuery({
-    ...queries.reservations(date),
-    enabled: !!date
-  });
 
   const createMutation = useCreateReservationMutation()
 
@@ -48,26 +41,8 @@ export function RoomBookingPage() {
   const isFilterComplete = hasTimeInputs && !validationError;
 
   // 필터링
+  const { rooms, availableRooms } = useGetAvailableRooms(filters);
   const floors = [...new Set(rooms.map((r: { floor: number }) => r.floor))].sort((a: number, b: number) => a - b);
-
-  const availableRooms = isFilterComplete
-    ? rooms
-        .filter((room: { id: string; capacity: number; equipment: Equipment[]; floor: number }) => {
-          if (room.capacity < attendees) return false;
-          if (!equipment.every(eq => room.equipment.includes(eq))) return false;
-          if (preferredFloor !== null && room.floor !== preferredFloor) return false;
-          const hasConflict = reservations.some(
-            (r: { roomId: string; date: string; start: string; end: string }) =>
-              r.roomId === room.id && r.date === date && r.start < endTime && r.end > startTime
-          );
-          if (hasConflict) return false;
-          return true;
-        })
-        .sort((a: { floor: number; name: string }, b: { floor: number; name: string }) => {
-          if (a.floor !== b.floor) return a.floor - b.floor;
-          return a.name.localeCompare(b.name);
-        })
-    : [];
 
   const handleBook = async () => {
     if (!selectedRoomId) {
