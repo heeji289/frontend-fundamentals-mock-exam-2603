@@ -7,15 +7,7 @@ import { colors } from '_tosslib/constants/colors';
 import { getRooms, getReservations, createReservation } from 'pages/remotes';
 import axios from 'axios';
 import z from 'zod';
-
-const EQUIPMENT_LABELS: Record<string, string> = {
-  tv: 'TV',
-  whiteboard: '화이트보드',
-  video: '화상장비',
-  speaker: '스피커',
-};
-
-const ALL_EQUIPMENT = ['tv', 'whiteboard', 'video', 'speaker'];
+import { ALL_EQUIPMENT, Equipment, EQUIPMENT_LABELS } from '../../types';
 
 const TIME_SLOTS: string[] = [];
 for (let h = 9; h <= 20; h++) {
@@ -37,7 +29,7 @@ const roomFiltersSchema = z.object({
   startTime: z.string().default(''),
   endTime: z.string().default(''),
   attendees: z.coerce.number().int().min(1).default(1),
-  equipment: z.array(z.string()).default([]),
+  equipment: z.array(z.enum(ALL_EQUIPMENT)).default([]),
   preferredFloor: z.coerce.number().int().nullable().default(null)
 })
 
@@ -120,7 +112,7 @@ export function RoomBookingPage() {
   const { data: reservations = [] } = useQuery(['reservations', date], () => getReservations(date), { enabled: !!date });
 
   const createMutation = useMutation(
-    (data: { roomId: string; date: string; start: string; end: string; attendees: number; equipment: string[] }) =>
+    (data: { roomId: string; date: string; start: string; end: string; attendees: number; equipment: Equipment[] }) =>
       createReservation(data),
     {
       onSuccess: (_data, variables) => {
@@ -153,7 +145,7 @@ export function RoomBookingPage() {
 
   const availableRooms = isFilterComplete
     ? rooms
-        .filter((room: { id: string; capacity: number; equipment: string[]; floor: number }) => {
+        .filter((room: { id: string; capacity: number; equipment: Equipment[]; floor: number }) => {
           if (room.capacity < attendees) return false;
           if (!equipment.every(eq => room.equipment.includes(eq))) return false;
           if (preferredFloor !== null && room.floor !== preferredFloor) return false;
@@ -406,7 +398,7 @@ export function RoomBookingPage() {
             </div>
           ) : (
             <div css={css`display: flex; flex-direction: column; gap: 10px;`}>
-              {availableRooms.map((room: { id: string; name: string; floor: number; capacity: number; equipment: string[] }) => {
+              {availableRooms.map((room: { id: string; name: string; floor: number; capacity: number; equipment: Equipment[] }) => {
                 const isSelected = selectedRoomId === room.id;
                 return (
                   <div
@@ -428,7 +420,7 @@ export function RoomBookingPage() {
                         <ListRow.Text2Rows
                           top={room.name}
                           topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                          bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment.map((e: string) => EQUIPMENT_LABELS[e]).join(', ')}`}
+                          bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment.map((e: Equipment) => EQUIPMENT_LABELS[e]).join(', ')}`}
                           bottomProps={{ typography: 't7', color: colors.grey600 }}
                         />
                       }
