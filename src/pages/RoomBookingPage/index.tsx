@@ -1,13 +1,14 @@
 import { css } from '@emotion/react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Top, Spacing, Border, Button, Text, Select, ListRow } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
-import { getRooms, getReservations, createReservation } from 'pages/remotes';
 import axios from 'axios';
 import z from 'zod';
 import { ALL_EQUIPMENT, Equipment, EQUIPMENT_LABELS } from '../../types';
+import { queries } from '../../queries';
+import { useCreateReservationMutation } from '../../mutations';
 
 const TIME_SLOTS: string[] = [];
 for (let h = 9; h <= 20; h++) {
@@ -100,7 +101,6 @@ function useRoomFilters() {
 
 export function RoomBookingPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const {filters, updateRoomFilters} = useRoomFilters();
   const {date, startTime, endTime, attendees, equipment, preferredFloor} = filters;
@@ -108,19 +108,13 @@ export function RoomBookingPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: rooms = [] } = useQuery(['rooms'], getRooms);
-  const { data: reservations = [] } = useQuery(['reservations', date], () => getReservations(date), { enabled: !!date });
+  const { data: rooms = [] } = useQuery(queries.rooms());
+  const { data: reservations = [] } = useQuery({
+    ...queries.reservations(date),
+    enabled: !!date
+  });
 
-  const createMutation = useMutation(
-    (data: { roomId: string; date: string; start: string; end: string; attendees: number; equipment: Equipment[] }) =>
-      createReservation(data),
-    {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries(['reservations', variables.date]);
-        queryClient.invalidateQueries(['myReservations']);
-      },
-    }
-  );
+  const createMutation = useCreateReservationMutation()
 
   // 필터 변경 시 선택 초기화
   const handleFilterChange = () => {

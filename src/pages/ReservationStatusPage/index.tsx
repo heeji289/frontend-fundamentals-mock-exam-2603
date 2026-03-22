@@ -1,11 +1,12 @@
 import { css } from '@emotion/react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Top, Spacing, Border, Button, Text, ListRow } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
-import { getRooms, getReservations, getMyReservations, cancelReservation } from 'pages/remotes';
 import { Equipment, EQUIPMENT_LABELS } from '../../types';
+import { queries } from '../../queries';
+import { useCancelReservationMutation } from '../../mutations';
 
 const TIME_SLOTS: string[] = [];
 for (let h = 9; h <= 20; h++) {
@@ -35,7 +36,6 @@ function timeToMinutes(time: string): number {
 export function ReservationStatusPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const [date, setDate] = useState(formatDate(new Date()));
 
   const locationState = location.state as { message?: string } | null;
@@ -49,16 +49,14 @@ export function ReservationStatusPage() {
     }
   }, [locationState]);
 
-  const { data: rooms = [] } = useQuery(['rooms'], getRooms);
-  const { data: reservations = [] } = useQuery(['reservations', date], () => getReservations(date), { enabled: !!date });
-  const { data: myReservationList = [] } = useQuery(['myReservations'], getMyReservations);
-
-  const cancelMutation = useMutation((id: string) => cancelReservation(id), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['reservations']);
-      queryClient.invalidateQueries(['myReservations']);
-    },
+  const { data: rooms = [] } = useQuery(queries.rooms());
+  const { data: reservations = [] } = useQuery({
+    ...queries.reservations(date),
+    enabled: !!date
   });
+  const { data: myReservationList = [] } = useQuery(queries.myReservations());
+
+  const cancelMutation = useCancelReservationMutation()
 
   const handleCancel = async (id: string) => {
     try {
