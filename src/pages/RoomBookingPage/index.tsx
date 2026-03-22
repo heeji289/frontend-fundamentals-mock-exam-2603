@@ -6,6 +6,7 @@ import { Top, Spacing, Border, Button, Text, Select, ListRow } from '_tosslib/co
 import { colors } from '_tosslib/constants/colors';
 import { getRooms, getReservations, createReservation } from 'pages/remotes';
 import axios from 'axios';
+import z from 'zod';
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   tv: 'TV',
@@ -31,27 +32,40 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-type RoomFilters = {
-  date: string;
-  startTime: string;
-  endTime: string;
-  attendees: number;
-  equipment: string[];
-  preferredFloor: number | null;
-}
+const roomFiltersSchema = z.object({
+  date: z.iso.date().default(formatDate(new Date())),
+  startTime: z.string().default(''),
+  endTime: z.string().default(''),
+  attendees: z.coerce.number().int().min(1).default(1),
+  equipment: z.array(z.string()).default([]),
+  preferredFloor: z.coerce.number().int().nullable().default(null)
+})
+
+type RoomFilters = z.infer<typeof roomFiltersSchema>
 
 function useRoomFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const parseRoomFilters = (searchParams: URLSearchParams): RoomFilters => {
-    return {
-      date: searchParams.get('date') || formatDate(new Date()),
-      startTime: searchParams.get('startTime') || '',
-      endTime: searchParams.get('endTime') || '',
-      attendees: Number(searchParams.get('attendees')) || 1,
-      equipment: searchParams.get('equipment') ? searchParams.get('equipment')!.split(',').filter(Boolean) : [],
-      preferredFloor: searchParams.get('floor') ? Number(searchParams.get('floor')) : null,
+    const raw = {
+      date: searchParams.get('date') ?? undefined,
+      startTime: searchParams.get('startTime') ?? undefined,
+      endTime: searchParams.get('endTime') ?? undefined,
+      attendees: searchParams.get('attendees') ?? undefined,
+      equipment: searchParams.get('equipment')
+        ? searchParams.get('equipment')!.split(',').filter(Boolean)
+        : undefined,
+      preferredFloor: searchParams.get('floor') ?? null,
     }
+
+    const result = roomFiltersSchema.safeParse(raw)
+
+    if (!result.success) {
+      console.error(`유효하지 않은 파라미터, ${JSON.stringify(result.error.issues)}`)
+      return roomFiltersSchema.parse({})
+    }
+
+    return result.data
   }
 
   const serializeRoomFilters = (filters: RoomFilters): URLSearchParams => {
